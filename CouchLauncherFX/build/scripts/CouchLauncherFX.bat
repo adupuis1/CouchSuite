@@ -70,7 +70,7 @@ goto fail
 :execute
 @rem Setup the command line
 
-set CLASSPATH=%APP_HOME%\lib\CouchLauncherFX.jar;%APP_HOME%\lib\jackson-annotations-2.17.2.jar;%APP_HOME%\lib\jackson-core-2.17.2.jar;%APP_HOME%\lib\jackson-databind-2.17.2.jar;%APP_HOME%\lib\javafx-controls-25-mac-aarch64.jar;%APP_HOME%\lib\javafx-graphics-25-mac-aarch64.jar;%APP_HOME%\lib\javafx-base-25-mac-aarch64.jar
+set CLASSPATH=%APP_HOME%\lib\CouchLauncherFX.jar;%APP_HOME%\lib\jackson-annotations-2.17.2.jar;%APP_HOME%\lib\jackson-core-2.17.2.jar;%APP_HOME%\lib\jackson-databind-2.17.2.jar;%APP_HOME%\lib\javafx-controls-25-linux.jar;%APP_HOME%\lib\javafx-graphics-25-linux.jar;%APP_HOME%\lib\javafx-base-25-linux.jar
 
 
 @rem Execute CouchLauncherFX

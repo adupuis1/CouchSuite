@@ -115,6 +115,12 @@
     -fx-effect: dropshadow(gaussian, -app-accent, 30, 0.5, 0, 12);
 }
 
+.launcher-tile-disabled {
+    -fx-opacity: 0.45;
+    -fx-effect: none;
+    -fx-border-color: rgba(255, 255, 255, 0.2);
+}
+
 .theme-cosmic-blue {
     -app-background: linear-gradient(to bottom, #010307 0%, #041226 65%, #071d3d 100%);
     -app-surface: rgba(12, 26, 48, 0.9);
@@ -153,4 +159,65 @@
 
 .theme-noir-contrast .combo-box-popup .list-view {
     -fx-background-color: rgba(40, 40, 40, 0.96);
+}
+
+.offline-badge {
+    -fx-background-color: rgba(255, 165, 0, 0.2);
+    -fx-text-fill: #ffcb6b;
+    -fx-font-weight: 600;
+    -fx-padding: 4 12;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-border-color: rgba(255, 165, 0, 0.45);
+}
+
+.server-error-pane {
+    -fx-background-color: rgba(0, 0, 0, 0.45);
+    -fx-background-radius: 18;
+    -fx-padding: 32;
+}
+
+.server-error-message {
+    -fx-text-fill: #ffb0b0;
+    -fx-font-size: 20px;
+    -fx-font-weight: 700;
+    -fx-alignment: center;
+}
+
+.retry-button {
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-padding: 10 28;
+    -fx-font-weight: 600;
+}
+
+.login-overlay {
+    -fx-background-color: rgba(0, 0, 0, 0.6);
+}
+
+.login-card {
+    -fx-background-color: rgba(20, 34, 54, 0.95);
+    -fx-padding: 24;
+    -fx-spacing: 12;
+    -fx-background-radius: 16;
+    -fx-border-radius: 16;
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(18, 32, 52, 0.6), 24, 0.45, 0, 12);
+}
+
+.login-heading {
+    -fx-font-size: 24px;
+    -fx-font-weight: 800;
+}
+
+.status-message {
+    -fx-text-fill: rgba(255, 255, 255, 0.8);
+    -fx-font-size: 13px;
+}
+
+.status-bar {
+    -fx-text-fill: rgba(255, 255, 255, 0.7);
+    -fx-font-size: 13px;
 }
