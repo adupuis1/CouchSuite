@@ -1,0 +1,33 @@
+
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+application {
+    mainClass = 'app.Main'
+}
+
+javafx {
+    // JavaFX 21+ runs great on Apple Silicon and Linux ARM64
+    version = '25'
+    modules = [ 'javafx.controls', 'javafx.graphics' ]
+}
+
+dependencies {
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+}
+
+tasks.withType(JavaExec).configureEach {
+    jvmArgs += ['-Dprism.allowhidpi=true']
+}
