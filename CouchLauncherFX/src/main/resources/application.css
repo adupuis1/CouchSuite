@@ -1,223 +1,253 @@
-.app-root {
-    -app-background: linear-gradient(to bottom, #010307 0%, #041226 65%, #071d3d 100%);
-    -app-surface: rgba(12, 26, 48, 0.86);
-    -app-accent: #2f9bff;
-    -app-accent-strong: #58b8ff;
-    -app-text: #f2f6ff;
-    -app-muted-text: #8ca4c7;
-    -app-toolbar-bg: rgba(10, 21, 40, 0.72);
-    -app-border: rgba(255, 255, 255, 0.08);
-    -app-shadow: rgba(15, 55, 110, 0.55);
-    -fx-background-color: -app-background;
-    -fx-font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", sans-serif;
-    -fx-text-fill: -app-text;
+.root-container {
+    -fx-background-color: #f9f9fc;
+    -fx-font-family: "Montserrat", "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-text-fill: #1a1a1a;
 }
 
-.top-bar {
-    -fx-background-color: -app-toolbar-bg;
+.connect-pane,
+.user-select-pane,
+.hub-pane {
+    -fx-background-color: #f9f9fc;
+}
+
+.connect-hint,
+.user-select-title,
+.section-title {
+    -fx-text-fill: #131313;
+    -fx-font-weight: 700;
+    -fx-font-size: 22px;
+}
+
+.user-select-title {
+    -fx-font-size: 26px;
+}
+
+.user-select-presence {
+    -fx-text-fill: #6b6b6e;
+    -fx-font-size: 15px;
+}
+
+.connect-title {
+    -fx-text-fill: #131313;
+    -fx-font-size: 34px;
+    -fx-font-weight: 800;
+    -fx-letter-spacing: 2px;
+}
+
+.indicator-dot {
+    -fx-fill: #c9c9d0;
+}
+
+.indicator-dot-active {
+    -fx-fill: #111111;
+}
+
+.avatar-caption {
+    -fx-text-fill: #6b6b6e;
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+}
+
+
+.avatar-button {
+    -fx-background-color: rgba(0, 0, 0, 0.05);
+    -fx-border-color: rgba(0, 0, 0, 0.18);
+    -fx-background-radius: 120;
+    -fx-border-radius: 120;
+    -fx-min-width: 160;
+    -fx-min-height: 160;
+    -fx-max-width: 160;
+    -fx-max-height: 160;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.avatar-button:hover {
+    -fx-opacity: 0.85;
+}
+
+.primary-button {
+    -fx-background-color: #131313;
+    -fx-text-fill: white;
+    -fx-padding: 10 24;
     -fx-background-radius: 18;
     -fx-border-radius: 18;
-    -fx-border-color: -app-border;
-    -fx-border-width: 1;
-    -fx-padding: 10 16;
-    -fx-effect: dropshadow(gaussian, -app-shadow, 20, 0.35, 0, 4);
-}
-
-.top-bar .label,
-.top-bar .text-field,
-.top-bar .combo-box {
-    -fx-text-fill: -app-text;
-}
-
-.host-label {
     -fx-font-weight: 600;
-    -fx-padding: 0 8 0 0;
+    -fx-cursor: hand;
 }
 
-.text-field {
-    -fx-background-radius: 12;
-    -fx-border-radius: 12;
-    -fx-border-color: -app-border;
-    -fx-border-width: 1;
-    -fx-background-color: rgba(255, 255, 255, 0.05);
-    -fx-text-fill: -app-text;
-    -fx-prompt-text-fill: -app-muted-text;
-    -fx-padding: 6 12;
+.primary-button:hover {
+    -fx-background-color: #262626;
 }
 
-.combo-box {
-    -fx-background-radius: 12;
-    -fx-border-radius: 12;
-    -fx-border-color: -app-border;
-    -fx-border-width: 1;
-    -fx-background-color: rgba(255, 255, 255, 0.05);
-    -fx-padding: 2 10;
-}
-
-.combo-box .arrow {
-    -fx-background-color: -app-muted-text;
-}
-
-.combo-box .list-cell {
-    -fx-text-fill: -app-text;
+.ghost-button {
     -fx-background-color: transparent;
-}
-
-.combo-box-popup .list-view {
-    -fx-background-color: rgba(15, 30, 56, 0.95);
-    -fx-border-color: -app-border;
-    -fx-border-width: 1;
-    -fx-background-radius: 12;
-    -fx-border-radius: 12;
-}
-
-.exit-button {
-    -fx-background-radius: 12;
-    -fx-border-radius: 12;
-    -fx-background-color: rgba(255, 74, 74, 0.16);
-    -fx-border-color: rgba(255, 74, 74, 0.45);
-    -fx-border-width: 1;
-    -fx-text-fill: #ffb0b0;
+    -fx-border-color: #2d2d2d;
+    -fx-text-fill: #2d2d2d;
+    -fx-border-radius: 18;
+    -fx-background-radius: 18;
+    -fx-padding: 8 20;
     -fx-font-weight: 600;
-    -fx-padding: 8 18;
+    -fx-cursor: hand;
 }
 
-.exit-button:hover {
-    -fx-background-color: rgba(255, 74, 74, 0.24);
+.ghost-button:hover {
+    -fx-border-color: #131313;
+    -fx-text-fill: #131313;
 }
 
-.launcher-title {
-    -fx-font-size: 36px;
-    -fx-font-weight: 800;
-    -fx-text-fill: -app-accent-strong;
-}
-
-.tile-grid {
+.icon-button {
     -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 4;
+    -fx-cursor: hand;
 }
 
-.launcher-tile {
-    -fx-background-color: -app-surface;
-    -fx-background-radius: 24;
-    -fx-border-radius: 24;
-    -fx-border-color: -app-border;
-    -fx-border-width: 1.2;
-    -fx-text-fill: -app-text;
-    -fx-font-size: 22px;
-    -fx-font-weight: 700;
-    -fx-padding: 24;
-    -fx-effect: dropshadow(gaussian, -app-shadow, 24, 0.38, 0, 10);
+.icon-button:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.05);
+    -fx-background-radius: 50%;
 }
 
-.launcher-tile:hover {
-    -fx-border-color: -app-accent;
-    -fx-background-color: derive(-app-surface, 10%);
-    -fx-effect: dropshadow(gaussian, -app-accent, 30, 0.5, 0, 12);
+.hub-pane .label {
+    -fx-text-fill: #1a1a1a;
 }
 
-.launcher-tile-disabled {
-    -fx-opacity: 0.45;
-    -fx-effect: none;
-    -fx-border-color: rgba(255, 255, 255, 0.2);
+.hub-tab {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #8a8a8d;
+    -fx-font-size: 18px;
+    -fx-font-weight: 600;
 }
 
-.theme-cosmic-blue {
-    -app-background: linear-gradient(to bottom, #010307 0%, #041226 65%, #071d3d 100%);
-    -app-surface: rgba(12, 26, 48, 0.9);
-    -app-accent: #2f9bff;
-    -app-accent-strong: #77c7ff;
-    -app-text: #f2f6ff;
-    -app-muted-text: #8ca4c7;
-    -app-toolbar-bg: rgba(6, 18, 36, 0.78);
-    -app-border: rgba(119, 199, 255, 0.25);
-    -app-shadow: rgba(28, 110, 200, 0.55);
-}
-
-.theme-light-glaze {
-    -app-background: linear-gradient(to bottom, #f5f7fb 0%, #dfe7f5 100%);
-    -app-surface: rgba(255, 255, 255, 0.88);
-    -app-accent: #2f6bff;
-    -app-accent-strong: #204bb5;
-    -app-text: #202c3c;
-    -app-muted-text: #5c6f8a;
-    -app-toolbar-bg: rgba(255, 255, 255, 0.86);
-    -app-border: rgba(59, 99, 206, 0.25);
-    -app-shadow: rgba(59, 99, 206, 0.35);
-}
-
-.theme-noir-contrast {
-    -app-background: linear-gradient(to bottom, #050505 0%, #121212 100%);
-    -app-surface: rgba(20, 20, 20, 0.92);
-    -app-accent: #ff7a18;
-    -app-accent-strong: #ffae63;
-    -app-text: #f5f5f5;
-    -app-muted-text: #b0b0b0;
-    -app-toolbar-bg: rgba(32, 32, 32, 0.88);
-    -app-border: rgba(255, 122, 24, 0.45);
-    -app-shadow: rgba(255, 122, 24, 0.5);
-}
-
-.theme-noir-contrast .combo-box-popup .list-view {
-    -fx-background-color: rgba(40, 40, 40, 0.96);
+.hub-tab:selected {
+    -fx-text-fill: #131313;
 }
 
 .offline-badge {
-    -fx-background-color: rgba(255, 165, 0, 0.2);
-    -fx-text-fill: #ffcb6b;
-    -fx-font-weight: 600;
-    -fx-padding: 4 12;
-    -fx-background-radius: 12;
-    -fx-border-radius: 12;
+    -fx-background-color: rgba(255, 170, 0, 0.18);
+    -fx-text-fill: #c96d00;
+    -fx-padding: 4 14;
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-border-color: rgba(201, 109, 0, 0.3);
     -fx-border-width: 1;
-    -fx-border-color: rgba(255, 165, 0, 0.45);
+    -fx-font-weight: 600;
+}
+
+.hub-scroll {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.hub-section {
+    -fx-background-color: rgba(255, 255, 255, 0.72);
+    -fx-background-radius: 28;
+    -fx-padding: 24;
+    -fx-effect: dropshadow(gaussian, rgba(15, 15, 30, 0.08), 18, 0.3, 0, 8);
+}
+
+.section-title {
+    -fx-font-size: 18px;
+    -fx-letter-spacing: 0.6px;
+}
+
+.tile-grid {
+    -fx-padding: 12 0 0 0;
+}
+
+.launcher-tile {
+    -fx-background-color: rgba(0, 0, 0, 0.82);
+    -fx-text-fill: white;
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-font-size: 18px;
+    -fx-font-weight: 700;
+    -fx-padding: 18;
+    -fx-wrap-text: true;
+}
+
+.launcher-tile:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.9);
+}
+
+.launcher-tile-disabled {
+    -fx-opacity: 0.4;
 }
 
 .server-error-pane {
-    -fx-background-color: rgba(0, 0, 0, 0.45);
-    -fx-background-radius: 18;
+    -fx-background-color: rgba(255, 255, 255, 0.9);
+    -fx-background-radius: 24;
     -fx-padding: 32;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.12), 20, 0.3, 0, 6);
 }
 
 .server-error-message {
-    -fx-text-fill: #ffb0b0;
-    -fx-font-size: 20px;
+    -fx-text-fill: #c32f27;
+    -fx-font-size: 18px;
     -fx-font-weight: 700;
-    -fx-alignment: center;
-}
-
-.retry-button {
-    -fx-background-radius: 12;
-    -fx-border-radius: 12;
-    -fx-padding: 10 28;
-    -fx-font-weight: 600;
-}
-
-.login-overlay {
-    -fx-background-color: rgba(0, 0, 0, 0.6);
-}
-
-.login-card {
-    -fx-background-color: rgba(20, 34, 54, 0.95);
-    -fx-padding: 24;
-    -fx-spacing: 12;
-    -fx-background-radius: 16;
-    -fx-border-radius: 16;
-    -fx-border-color: rgba(255, 255, 255, 0.08);
-    -fx-border-width: 1;
-    -fx-effect: dropshadow(gaussian, rgba(18, 32, 52, 0.6), 24, 0.45, 0, 12);
-}
-
-.login-heading {
-    -fx-font-size: 24px;
-    -fx-font-weight: 800;
-}
-
-.status-message {
-    -fx-text-fill: rgba(255, 255, 255, 0.8);
-    -fx-font-size: 13px;
 }
 
 .status-bar {
-    -fx-text-fill: rgba(255, 255, 255, 0.7);
+    -fx-text-fill: #6b6b6e;
+    -fx-padding: 14 32;
     -fx-font-size: 13px;
+}
+
+.status-message {
+    -fx-text-fill: #4a4a4d;
+    -fx-font-size: 14px;
+}
+
+.empty-label {
+    -fx-text-fill: #8a8a8d;
+    -fx-font-size: 16px;
+    -fx-alignment: center;
+}
+
+.overlay-layer {
+    -fx-background-color: rgba(0, 0, 0, 0.32);
+    -fx-alignment: center;
+}
+
+.overlay-card {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 24;
+    -fx-border-radius: 24;
+    -fx-padding: 24;
+    -fx-spacing: 16;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 20, 0.32, 0, 10);
+}
+
+.overlay-title {
+    -fx-text-fill: #131313;
+    -fx-font-size: 22px;
+    -fx-font-weight: 700;
+}
+
+.overlay-subtitle {
+    -fx-text-fill: #8a8a8d;
+    -fx-font-size: 14px;
+}
+
+.text-field,
+.password-field {
+    -fx-background-color: rgba(0, 0, 0, 0.04);
+    -fx-border-color: rgba(0, 0, 0, 0.12);
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+    -fx-padding: 10 14;
+}
+
+.text-field:focused,
+.password-field:focused {
+    -fx-border-color: rgba(0, 0, 0, 0.45);
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.separator {
+    -fx-background-color: rgba(0, 0, 0, 0.08);
 }
