@@ -142,6 +142,9 @@ public class Main extends Application {
         loginOverlay.managedProperty().bind(loginOverlay.visibleProperty());
         root.getChildren().addAll(mainContent, loginOverlay);
 
+        Button offOverlayButton = buildOverlayOffButton(stage);
+        root.getChildren().add(offOverlayButton);
+
         scene = new Scene(root, 1280, 800);
         scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/application.css")).toExternalForm());
 
@@ -204,11 +207,7 @@ public class Main extends Application {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button exitButton = new Button("Exit");
-        exitButton.setOnAction(event -> stage.close());
-        exitButton.getStyleClass().add("exit-button");
-
-        toolBar.getItems().addAll(hostLabel, hostField, new Separator(), themeSelector, refreshButton, offlineBadge, spacer, exitButton);
+        toolBar.getItems().addAll(hostLabel, hostField, new Separator(), themeSelector, refreshButton, offlineBadge, spacer);
         return toolBar;
     }
 
@@ -274,6 +273,17 @@ public class Main extends Application {
         overlay.setPickOnBounds(false);
 
         return overlay;
+    }
+
+    private Button buildOverlayOffButton(Stage stage) {
+        Button offButton = new Button("Off");
+        offButton.getStyleClass().add("exit-button");
+        offButton.setFocusTraversable(false);
+        offButton.setOnAction(event -> Platform.exit());
+        StackPane.setAlignment(offButton, Pos.TOP_RIGHT);
+        StackPane.setMargin(offButton, new Insets(16));
+        offButton.setPickOnBounds(false);
+        return offButton;
     }
 
     private void configureResponsiveLayout() {

@@ -1,0 +1,88 @@
+2025-09-30 16:12:48 | WARNING  | Cannot detect or read from CBR archives
+2025-09-30 16:12:48 | INFO     | Starting Codex v1.8.14
+2025-09-30 16:12:48 | INFO     | Ensuring database is correct and up to date...
+2025-09-30 16:12:58 | SUCCESS  | Database ready.
+2025-09-30 16:12:58 | SUCCESS  | Created admin user.
+2025-09-30 16:12:58 | INFO     | Created AdminFlag: Auto Update = False
+2025-09-30 16:12:58 | INFO     | Created AdminFlag: Banner Text = True
+2025-09-30 16:12:58 | INFO     | Created AdminFlag: Folder View = True
+2025-09-30 16:12:58 | INFO     | Created AdminFlag: Import Metadata = True
+2025-09-30 16:12:58 | INFO     | Created AdminFlag: Lazy Import Metadata = True
+2025-09-30 16:12:58 | INFO     | Created AdminFlag: Non Users = True
+2025-09-30 16:12:58 | INFO     | Created AdminFlag: Registration = True
+2025-09-30 16:12:58 | INFO     | Created AdminFlag: Send Telemetry = True
+2025-09-30 16:12:58 | INFO     | Created Custom Covers Dir settings in the db.
+2025-09-30 16:12:58 | INFO     | root_path: 
+2025-09-30 16:12:58 | SUCCESS  | Running Codex v1.8.14
+2025-09-30 16:12:58 | SUCCESS  | BroadcastListener started.
+2025-09-30 16:12:58 | INFO     | LibrarianDaemon started all threads.
+2025-09-30 16:12:58 | SUCCESS  | LibrarianDaemon ready for tasks.
+2025-09-30 16:12:58 | INFO     | Started watching library /home/anatole/Dev/CouchSuite/config/custom-covers with poll
+2025-09-30 16:12:58 | INFO     | Library /home/anatole/Dev/CouchSuite/config/custom-covers waiting for manual poll.
+2025-09-30 16:12:58 | INFO     | Looking for search entries to update since the fracturing of the multiverse...
+2025-09-30 16:12:58 | INFO     | Looking for missing search entries to create...
+2025-09-30 16:12:58 | SUCCESS  | Search index found to be already synced in a moment.
+2025-09-30 16:15:56 | WARNING  | Cannot detect or read from CBR archives
+2025-09-30 16:15:56 | INFO     | Starting Codex v1.8.14
+2025-09-30 16:15:56 | INFO     | Ensuring database is correct and up to date...
+2025-09-30 16:15:56 | INFO     | Database up to date.
+2025-09-30 16:15:56 | SUCCESS  | Database ready.
+2025-09-30 16:15:56 | INFO     | root_path: 
+2025-09-30 16:15:56 | SUCCESS  | Running Codex v1.8.14
+2025-09-30 16:15:56 | SUCCESS  | BroadcastListener started.
+2025-09-30 16:15:56 | INFO     | LibrarianDaemon started all threads.
+2025-09-30 16:15:56 | SUCCESS  | LibrarianDaemon ready for tasks.
+2025-09-30 16:15:56 | INFO     | Started watching library /home/anatole/Dev/CouchSuite/config/custom-covers with poll
+2025-09-30 16:15:56 | INFO     | Library /home/anatole/Dev/CouchSuite/config/custom-covers waiting for manual poll.
+2025-09-30 16:15:56 | INFO     | Looking for search entries to update since the fracturing of the multiverse...
+2025-09-30 16:15:57 | INFO     | Looking for missing search entries to create...
+2025-09-30 16:15:57 | SUCCESS  | Search index found to be already synced in a moment.
+2025-09-30 16:16:51 | WARNING  | Cannot detect or read from CBR archives
+2025-09-30 16:16:51 | INFO     | Starting Codex v1.8.14
+2025-09-30 16:16:51 | INFO     | Ensuring database is correct and up to date...
+2025-09-30 16:16:51 | INFO     | Database up to date.
+2025-09-30 16:16:51 | SUCCESS  | Database ready.
+2025-09-30 16:16:51 | INFO     | root_path: 
+2025-09-30 16:16:51 | SUCCESS  | Running Codex v1.8.14
+2025-09-30 16:16:51 | SUCCESS  | BroadcastListener started.
+2025-09-30 16:16:51 | INFO     | LibrarianDaemon started all threads.
+2025-09-30 16:16:51 | SUCCESS  | LibrarianDaemon ready for tasks.
+2025-09-30 16:16:51 | INFO     | Started watching library /home/anatole/Dev/CouchSuite/config/custom-covers with poll
+2025-09-30 16:16:51 | INFO     | Library /home/anatole/Dev/CouchSuite/config/custom-covers waiting for manual poll.
+2025-09-30 16:16:51 | INFO     | Looking for search entries to update since the fracturing of the multiverse...
+2025-09-30 16:16:51 | INFO     | Looking for missing search entries to create...
+2025-09-30 16:16:51 | SUCCESS  | Search index found to be already synced in a moment.
+2025-09-30 16:20:55 | WARNING  | Cannot detect or read from CBR archives
+2025-09-30 16:20:55 | INFO     | Starting Codex v1.8.14
+2025-09-30 16:20:55 | INFO     | Ensuring database is correct and up to date...
+2025-09-30 16:20:55 | INFO     | Database up to date.
+2025-09-30 16:20:55 | SUCCESS  | Database ready.
+2025-09-30 16:20:55 | INFO     | root_path: 
+2025-09-30 16:20:55 | SUCCESS  | Running Codex v1.8.14
+2025-09-30 16:20:55 | SUCCESS  | BroadcastListener started.
+2025-09-30 16:20:55 | INFO     | LibrarianDaemon started all threads.
+2025-09-30 16:20:55 | SUCCESS  | LibrarianDaemon ready for tasks.
+2025-09-30 16:20:55 | INFO     | Started watching library /home/anatole/Dev/CouchSuite/config/custom-covers with poll
+2025-09-30 16:20:55 | INFO     | Library /home/anatole/Dev/CouchSuite/config/custom-covers waiting for manual poll.
+2025-09-30 16:20:55 | INFO     | Looking for search entries to update since the fracturing of the multiverse...
+2025-09-30 16:20:55 | INFO     | Looking for missing search entries to create...
+2025-09-30 16:20:55 | SUCCESS  | Search index found to be already synced in a moment.
+2025-09-30 16:21:01 | INFO     | LibrarianDaemon joined all threads.
+2025-09-30 16:21:59 | WARNING  | Cannot detect or read from CBR archives
+2025-09-30 16:21:59 | INFO     | Starting Codex v1.8.14
+2025-09-30 16:21:59 | INFO     | Ensuring database is correct and up to date...
+2025-09-30 16:21:59 | INFO     | Database up to date.
+2025-09-30 16:21:59 | SUCCESS  | Database ready.
+2025-09-30 16:21:59 | INFO     | root_path: 
+2025-09-30 16:21:59 | SUCCESS  | Running Codex v1.8.14
+2025-09-30 16:21:59 | SUCCESS  | BroadcastListener started.
+2025-09-30 16:21:59 | INFO     | LibrarianDaemon started all threads.
+2025-09-30 16:21:59 | SUCCESS  | LibrarianDaemon ready for tasks.
+2025-09-30 16:21:59 | INFO     | Started watching library /home/anatole/Dev/CouchSuite/config/custom-covers with poll
+2025-09-30 16:21:59 | INFO     | Library /home/anatole/Dev/CouchSuite/config/custom-covers waiting for manual poll.
+2025-09-30 16:21:59 | INFO     | Looking for search entries to update since the fracturing of the multiverse...
+2025-09-30 16:21:59 | INFO     | Looking for missing search entries to create...
+2025-09-30 16:21:59 | SUCCESS  | Search index found to be already synced in a moment.
+2025-09-30 16:28:47 | INFO     | Asking hypercorn to shut down gracefully. Could take 10 seconds...
+2025-09-30 16:28:47 | INFO     | BroadcastListener shutdown
+2025-09-30 16:28:47 | SUCCESS  | Goodbye.
