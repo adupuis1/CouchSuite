@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+
+<StackPane prefHeight="800" prefWidth="1280" style="-fx-background-color: linear-gradient(to bottom right, #fefeff 0%, #f3f4ff 52%, #e8ecfb 100%);" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+    <children>
+        <BorderPane maxHeight="720" maxWidth="1180" prefHeight="720" prefWidth="1180" style="-fx-background-color: rgba(255,255,255,0.88); -fx-background-radius: 46; -fx-padding: 48 56;" styleClass="user-select-pane">
+            <top>
+                <HBox alignment="CENTER_LEFT" spacing="18">
+                    <children>
+                        <StackPane prefHeight="56" prefWidth="56" style="-fx-background-color: rgba(19,19,19,0.92); -fx-background-radius: 18;">
+                            <children>
+                                <ImageView fitHeight="28" fitWidth="28" preserveRatio="true">
+                                    <image>
+                                        <Image url="@assets/console_or_controller_icons/icons8-joy-con-100.png" />
+                                    </image>
+                                </ImageView>
+                            </children>
+                        </StackPane>
+                        <Label styleClass="connect-title" text="select profile" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Button fx:id="controllerButton" styleClass="icon-button">
+                            <graphic>
+                                <ImageView fitHeight="32" fitWidth="32" preserveRatio="true">
+                                    <image>
+                                        <Image url="@assets/console_or_controller_icons/icons8-game-controller-100.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+                        <Button fx:id="userButton" styleClass="icon-button">
+                            <graphic>
+                                <ImageView fitHeight="32" fitWidth="32" preserveRatio="true">
+                                    <image>
+                                        <Image url="@assets/generic_icons/icons8-user-100.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+                        <Button fx:id="wifiButton" styleClass="icon-button">
+                            <graphic>
+                                <ImageView fitHeight="32" fitWidth="32" preserveRatio="true">
+                                    <image>
+                                        <Image url="@assets/server_status_icons/icons8-scan-wi-fi-100.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+                        <Button fx:id="headerSettingsButton" styleClass="ghost-button" text="Settings" />
+                    </children>
+                </HBox>
+            </top>
+            <center>
+                <VBox alignment="CENTER" spacing="32" stylesheets="@../application.css">
+                    <children>
+                        <VBox alignment="CENTER" spacing="12">
+                            <children>
+                                <Label fx:id="subtitle" styleClass="user-select-title" text="select user" />
+                                <Label fx:id="controllerBanner" styleClass="user-select-presence" text="Waiting for controller..." />
+                            </children>
+                        </VBox>
+                        <ScrollPane fitToHeight="true" hbarPolicy="NEVER" prefViewportWidth="900" style="-fx-background-color: transparent;" vbarPolicy="NEVER">
+                            <content>
+                                <HBox fx:id="avatarRow" alignment="CENTER" spacing="28">
+                                    <padding>
+                                        <Insets bottom="0" left="24" right="24" top="0" />
+                                    </padding>
+                                    <children>
+                                        <VBox fx:id="addUserTile" alignment="CENTER" spacing="12" style="-fx-background-color: rgba(0,0,0,0.04); -fx-background-radius: 28; -fx-padding: 24 32;">
+                                            <children>
+                                                <Button fx:id="addUserButton" styleClass="avatar-button">
+                                                    <graphic>
+                                                        <ImageView fitHeight="64" fitWidth="64" preserveRatio="true">
+                                                            <image>
+                                                                <Image url="@assets/generic_icons/icons8-plus-math-100.png" />
+                                                            </image>
+                                                        </ImageView>
+                                                    </graphic>
+                                                </Button>
+                                                <Label styleClass="avatar-caption" text="add user" />
+                                            </children>
+                                        </VBox>
+                                    </children>
+                                </HBox>
+                            </content>
+                        </ScrollPane>
+                        <Label fx:id="presenceMessage" styleClass="user-select-presence" text="Create the first CouchSuite account." wrapText="true" />
+                        <HBox alignment="CENTER" spacing="10">
+                            <children>
+                                <Circle radius="6" styleClass="indicator-dot" />
+                                <Circle radius="6" styleClass="indicator-dot-active" />
+                                <Circle radius="6" styleClass="indicator-dot" />
+                            </children>
+                        </HBox>
+                        <HBox alignment="CENTER" spacing="18">
+                            <children>
+                                <Button fx:id="continueButton" prefWidth="160" styleClass="primary-button" text="Continue" />
+                                <Button fx:id="actionsSettingsButton" prefWidth="140" styleClass="ghost-button" text="Settings" />
+                            </children>
+                        </HBox>
+                    </children>
+                </VBox>
+            </center>
+        </BorderPane>
+    </children>
+</StackPane>

@@ -9,6 +9,7 @@ import javafx.application.Platform;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
@@ -111,7 +112,7 @@ public class Main extends Application {
         OTHER
     }
 
-    private record RepoResult(List<AppTile> apps, boolean fromCache) {
+    private record RepoResult(List<AppTile> apps, boolean fromCache, String rawJson) {
     }
 
     public static void main(String[] args) {
@@ -141,10 +142,6 @@ public class Main extends Application {
                 stage.close();
             }
         });
-
-        hostField = new TextField();
-        hostField.setPromptText("Server host (e.g., 192.168.4.229:8080)");
-        hostField.setPrefWidth(320);
 
         connectPane = new ConnectPane(executor, controllerService, this::handleConnectContinue, this::openSettings);
         userSelectPane = new UserSelectPane(this::handleUserContinue, this::openCreateAccount, this::openLogin, this::openSettings);
@@ -243,8 +240,12 @@ public class Main extends Application {
     }
 
     private void applyHostChanges(String host) {
-        hostField.setText(host);
-        config.host = host;
+        String sanitized = host == null ? "" : host.trim();
+        if (!sanitized.startsWith("http://") && !sanitized.startsWith("https://")) {
+            sanitized = sanitized.isEmpty() ? HttpRepo.DEFAULT_BASE_URL : "http://" + sanitized;
+        }
+        hostField.setText(sanitized);
+        config.host = sanitized;
         saveConfig();
         refreshData();
     }
@@ -289,16 +290,25 @@ public class Main extends Application {
         CompletableFuture.supplyAsync(() -> {
             String host = resolvedHost();
             try {
-                String json = HttpRepo.fetchAppsJson(host, initial ? INITIAL_TIMEOUT : java.time.Duration.ofSeconds(5), 3);
-                CacheManager.save(json);
-                List<AppTile> apps = HttpRepo.parseApps(json);
-                return new RepoResult(apps, false);
+                Integer preloadUser = session != null ? session.userId() : config.userId;
+                Integer preloadOrg = session != null && session.primaryOrgId() != null
+                        ? session.primaryOrgId()
+                        : config.orgId;
+                HttpRepo.CatalogResult catalog = HttpRepo.loadCatalog(
+                        host,
+                        preloadUser,
+                        preloadOrg,
+                        initial ? INITIAL_TIMEOUT : java.time.Duration.ofSeconds(5),
+                        3
+                );
+                CacheManager.save(catalog.rawJson());
+                return new RepoResult(catalog.tiles(), false, catalog.rawJson());
             } catch (Exception ex) {
                 String cached = CacheManager.read();
                 if (cached != null) {
                     try {
                         List<AppTile> cachedApps = HttpRepo.parseApps(cached);
-                        return new RepoResult(cachedApps, true);
+                        return new RepoResult(cachedApps, true, cached);
                     } catch (Exception ignored) {
                     }
                 }
@@ -312,7 +322,7 @@ public class Main extends Application {
                 hubPane.setOffline(offlineMode);
                 currentTiles = result.apps();
                 hubPane.displayTiles(currentTiles);
-                hubPane.showStatus(offlineMode ? "Offline mode (cache)" : "Loaded default apps");
+                hubPane.showStatus(offlineMode ? "Offline mode (cache)" : "Loaded default charts");
                 if (!offlineMode) {
                     fetchUserPresence();
                 }
@@ -327,8 +337,16 @@ public class Main extends Application {
         hubPane.showLoading();
         CompletableFuture.supplyAsync(() -> {
             try {
-                List<AppTile> apps = HttpRepo.fetchUserApps(resolvedHost(), session.userId());
-                return new RepoResult(apps, false);
+                Integer orgId = session.primaryOrgId() != null ? session.primaryOrgId() : config.orgId;
+                HttpRepo.CatalogResult catalog = HttpRepo.loadCatalog(
+                        resolvedHost(),
+                        session.userId(),
+                        orgId,
+                        java.time.Duration.ofSeconds(5),
+                        3
+                );
+                CacheManager.save(catalog.rawJson());
+                return new RepoResult(catalog.tiles(), false, catalog.rawJson());
             } catch (Exception ex) {
                 throw new CompletionException(ex);
             }
@@ -340,7 +358,7 @@ public class Main extends Application {
                 hubPane.setOffline(false);
                 currentTiles = result.apps();
                 hubPane.displayTiles(currentTiles);
-                hubPane.showStatus("Loaded apps for " + session.username());
+                hubPane.showStatus("Loaded catalog for " + session.username());
             }
         }));
     }
@@ -438,17 +456,38 @@ public class Main extends Application {
         hubPane.showStatus("Welcome, " + profile.username());
         config.username = profile.username();
         config.userId = profile.userId();
+        config.orgId = profile.primaryOrgId();
+        config.token = profile.token();
         saveConfig();
         userSelectPane.prepare(profile.username());
         firstLaunchFlow = false;
         hasUsersAvailable = true;
         controllerConnected = true;
         showScreen(Screen.HUB, true);
+        refreshUserRepo();
     }
 
     private void launch(AppTile app) {
+        if (!app.playable()) {
+            hubPane.showStatus("Game not ready to stream. Verify ownership and install status.");
+            return;
+        }
         String hostValue = resolvedHost();
         boolean stubLaunch = false;
+        HttpRepo.SessionResponse sessionResponse = null;
+        if (session != null && session.primaryOrgId() != null && app.gameId != null) {
+            try {
+                sessionResponse = HttpRepo.startSession(hostValue, session.primaryOrgId(), session.userId(), app.gameId);
+                if (sessionResponse.streamUrl() != null && !sessionResponse.streamUrl().isBlank()) {
+                    hubPane.showStatus("Session ready: " + sessionResponse.streamUrl());
+                } else {
+                    hubPane.showStatus("Provisioning session (" + sessionResponse.status() + ")");
+                }
+            } catch (Exception ex) {
+                hubPane.showStatus("Session allocation failed: " + summarizeError(ex));
+                return;
+            }
+        }
         try {
             OperatingSystem os = detectOperatingSystem();
             String hostOnly = stripScheme(hostValue);
@@ -483,9 +522,13 @@ public class Main extends Application {
         }
         saveConfig();
 
-        Alert alert = new Alert(Alert.AlertType.INFORMATION,
-                (stubLaunch ? "Stub launch" : "Launching") + " '" + app.name + "' against host: " + hostValue,
-                ButtonType.OK);
+        StringBuilder message = new StringBuilder();
+        message.append(stubLaunch ? "Stub launch" : "Launching");
+        message.append(" '").append(app.name).append("' against host: ").append(hostValue);
+        if (sessionResponse != null && sessionResponse.streamUrl() != null) {
+            message.append("\nStream URL: ").append(sessionResponse.streamUrl());
+        }
+        Alert alert = new Alert(Alert.AlertType.INFORMATION, message.toString(), ButtonType.OK);
         alert.setHeaderText("Launch");
         alert.showAndWait();
     }
@@ -573,7 +616,7 @@ public class Main extends Application {
     private void preloadDefaultRepo() {
         CompletableFuture.runAsync(() -> {
             try {
-                String json = HttpRepo.fetchAppsJson(resolvedHost(), INITIAL_TIMEOUT, 3);
+                String json = HttpRepo.fetchChartsJson(resolvedHost(), INITIAL_TIMEOUT, 3);
                 CacheManager.save(json);
                 List<AppTile> apps = HttpRepo.parseApps(json);
                 currentTiles = apps;
@@ -590,6 +633,10 @@ public class Main extends Application {
             payload.put("host", config.host);
             payload.put("username", config.username);
             payload.put("userId", config.userId);
+            payload.put("orgId", config.orgId);
+            if (config.token != null && !config.token.isBlank()) {
+                payload.put("token", config.token);
+            }
             String json = CONFIG_MAPPER.writeValueAsString(payload);
             Files.writeString(CONFIG_FILE, json, StandardCharsets.UTF_8);
         } catch (IOException ex) {
@@ -613,7 +660,10 @@ public class Main extends Application {
         if (host.isEmpty()) {
             return HttpRepo.DEFAULT_BASE_URL;
         }
-        return host;
+        if (host.startsWith("http://") || host.startsWith("https://")) {
+            return host;
+        }
+        return "http://" + host;
     }
 
     private String stripScheme(String hostValue) {
@@ -650,38 +700,6 @@ public class Main extends Application {
         return null;
     }
 
-    private HBox createProgressDots(int activeIndex) {
-        HBox dots = new HBox(12);
-        dots.setAlignment(Pos.CENTER);
-        for (int index = 0; index < TOTAL_STEPS; index++) {
-            Circle dot = new Circle(index == activeIndex ? 6 : 5);
-            dot.getStyleClass().add("indicator-dot");
-            if (index == activeIndex) {
-                dot.getStyleClass().add("indicator-dot-active");
-            }
-            dots.getChildren().add(dot);
-        }
-        return dots;
-    }
-
-    private Button iconButton(Image icon, Runnable action) {
-        return iconButton(icon, 32, action);
-    }
-
-    private Button iconButton(Image icon, double size, Runnable action) {
-        Button button = new Button();
-        button.getStyleClass().add("icon-button");
-        button.setGraphic(createIconView(icon, size));
-        button.setFocusTraversable(false);
-        button.setOnAction(event -> {
-            if (action != null) {
-                action.run();
-            }
-        });
-        return button;
-    }
-
-
     // ------------------------------------------------------------ Nested types
 
     private final class ConnectPane {
@@ -705,42 +723,19 @@ public class Main extends Application {
             this.controllerService = controllerService;
             this.onContinue = onContinue;
 
-            container = new BorderPane();
-            container.getStyleClass().add("connect-pane");
+            FXMLLoader loader = new FXMLLoader(Main.class.getResource("/app/ConnectPane.fxml"));
+            try {
+                container = loader.load();
+            } catch (IOException exception) {
+                throw new IllegalStateException("Unable to load ConnectPane.fxml", exception);
+            }
 
-            Label title = new Label("couchsuite");
-            title.getStyleClass().add("connect-title");
-            BorderPane.setAlignment(title, Pos.TOP_CENTER);
-            BorderPane.setMargin(title, new Insets(72, 0, 0, 0));
-            container.setTop(title);
+            controllerStatus = (Label) loader.getNamespace().get("controllerStatus");
+            continueButton = (Button) loader.getNamespace().get("continueButton");
+            settingsButton = (Button) loader.getNamespace().get("settingsButton");
 
-            VBox content = new VBox(28);
-            content.setAlignment(Pos.CENTER);
-            content.getChildren().add(buildControllerRow());
-            controllerStatus = new Label("Waiting for controller...");
-            controllerStatus.getStyleClass().add("user-select-presence");
-            content.getChildren().add(controllerStatus);
-            content.getChildren().add(createProgressDots(0));
-
-            Label hint = new Label("connect controller");
-            hint.getStyleClass().add("connect-hint");
-            content.getChildren().add(hint);
-
-            HBox actions = new HBox(16);
-            actions.setAlignment(Pos.CENTER);
-
-            continueButton = new Button("Continue");
-            continueButton.getStyleClass().add("primary-button");
             continueButton.setOnAction(event -> onContinue.run());
-
-            settingsButton = new Button("Settings");
-            settingsButton.getStyleClass().add("ghost-button");
             settingsButton.setOnAction(event -> onSettings.run());
-
-            actions.getChildren().addAll(continueButton, settingsButton);
-            content.getChildren().add(actions);
-
-            container.setCenter(content);
 
             poller = new Timeline(new KeyFrame(Duration.seconds(2), event -> pollController()));
             poller.setCycleCount(Timeline.INDEFINITE);
@@ -799,17 +794,6 @@ public class Main extends Application {
                     }));
         }
 
-        private HBox buildControllerRow() {
-            HBox row = new HBox(40);
-            row.setAlignment(Pos.CENTER);
-            row.getChildren().addAll(
-                    createIconView(loadImage("/app/assets/console_or_controller_icons/icons8-joy-con-100.png"), 96),
-                    createIconView(loadImage("/app/assets/console_or_controller_icons/icons8-game-controller-100.png"), 100),
-                    createIconView(loadImage("/app/assets/console_or_controller_icons/icons8-nintendo-switch-logo-100.png"), 96)
-            );
-            return row;
-        }
-
         private BorderPane getNode() {
             return container;
         }
@@ -838,72 +822,45 @@ public class Main extends Application {
         private boolean hasUsers;
 
         private UserSelectPane(Runnable onContinue, Runnable onCreateAccount, Runnable onLogin, Runnable onSettings) {
-            container = new BorderPane();
-            container.getStyleClass().add("user-select-pane");
+            FXMLLoader loader = new FXMLLoader(Main.class.getResource("/app/UserSelectPane.fxml"));
+            try {
+                container = loader.load();
+            } catch (IOException exception) {
+                throw new IllegalStateException("Unable to load UserSelectPane.fxml", exception);
+            }
 
-            container.setTop(buildHeader(onLogin, onSettings));
+            subtitle = (Label) loader.getNamespace().get("subtitle");
+            presenceMessage = (Label) loader.getNamespace().get("presenceMessage");
+            controllerBanner = (Label) loader.getNamespace().get("controllerBanner");
+            avatarRow = (HBox) loader.getNamespace().get("avatarRow");
+            addUserTile = (VBox) loader.getNamespace().get("addUserTile");
+            continueButton = (Button) loader.getNamespace().get("continueButton");
+            actionsSettingsButton = (Button) loader.getNamespace().get("actionsSettingsButton");
+            headerSettingsButton = (Button) loader.getNamespace().get("headerSettingsButton");
 
-            VBox content = new VBox(28);
-            content.setAlignment(Pos.CENTER);
-            content.setPadding(new Insets(96, 48, 96, 48));
+            Button controllerButton = (Button) loader.getNamespace().get("controllerButton");
+            Button userButton = (Button) loader.getNamespace().get("userButton");
+            Button wifiButton = (Button) loader.getNamespace().get("wifiButton");
+            Button addUserButton = (Button) loader.getNamespace().get("addUserButton");
 
-            subtitle = new Label("select user");
-            subtitle.getStyleClass().add("user-select-title");
-
-            controllerBanner = new Label("Waiting for controller...");
-            controllerBanner.getStyleClass().add("user-select-presence");
-
-            avatarRow = new HBox(32);
-            avatarRow.setAlignment(Pos.CENTER);
-
-            Button addUserButton = createAvatarButton(loadImage("/app/assets/generic_icons/icons8-plus-math-100.png"), onCreateAccount);
-            addUserTile = new VBox(8, addUserButton, captionLabel("new user"));
-            addUserTile.setAlignment(Pos.CENTER);
-
-            presenceMessage = new Label("Create the first CouchSuite account.");
-            presenceMessage.getStyleClass().add("user-select-presence");
-
-            continueButton = new Button("Continue");
-            continueButton.getStyleClass().add("ghost-button");
-            continueButton.setOnAction(event -> onContinue.run());
-
-            actionsSettingsButton = new Button("Settings");
-            actionsSettingsButton.getStyleClass().add("ghost-button");
-            actionsSettingsButton.setOnAction(event -> onSettings.run());
-
-            HBox actions = new HBox(16, continueButton, actionsSettingsButton);
-            actions.setAlignment(Pos.CENTER);
-
-            content.getChildren().addAll(subtitle, createProgressDots(1), controllerBanner, avatarRow, presenceMessage, actions);
-            container.setCenter(content);
-
-            rebuildAvatars(config.hasKnownUser());
-        }
-
-        private VBox buildHeader(Runnable onLogin, Runnable onSettings) {
-            Button controllerButton = iconButton(loadImage("/app/assets/console_or_controller_icons/icons8-joy-con-100.png"), () -> showScreen(Screen.CONNECT, false));
             controllerButton.setAccessibleText("Controllers");
+            controllerButton.setOnAction(event -> showScreen(Screen.CONNECT, false));
 
-            Button userButton = iconButton(loadImage("/app/assets/generic_icons/icons8-user-100.png"), onLogin);
             userButton.setAccessibleText("Sign in");
+            userButton.setOnAction(event -> onLogin.run());
 
-            Button wifiButton = iconButton(loadImage("/app/assets/server_status_icons/icons8-scan-wi-fi-100.png"), () -> {});
             wifiButton.setDisable(true);
 
-            Region spacer = new Region();
-            HBox.setHgrow(spacer, Priority.ALWAYS);
+            if (headerSettingsButton != null) {
+                headerSettingsButton.setOnAction(event -> onSettings.run());
+            }
 
-            headerSettingsButton = new Button("Settings");
-            headerSettingsButton.getStyleClass().add("ghost-button");
-            headerSettingsButton.setOnAction(event -> onSettings.run());
+            addUserButton.setOnAction(event -> onCreateAccount.run());
 
-            HBox bar = new HBox(16, controllerButton, userButton, wifiButton, spacer, headerSettingsButton);
-            bar.setAlignment(Pos.CENTER_LEFT);
-            bar.setPadding(new Insets(36, 48, 0, 48));
+            continueButton.setOnAction(event -> onContinue.run());
+            actionsSettingsButton.setOnAction(event -> onSettings.run());
 
-            VBox header = new VBox(bar);
-            header.setAlignment(Pos.TOP_LEFT);
-            return header;
+            rebuildAvatars(config.hasKnownUser());
         }
 
         private BorderPane getNode() {
@@ -1008,72 +965,53 @@ public class Main extends Application {
         private final BorderPane container;
         private final Label status;
         private final Label offlineBadge;
-        private final ServerErrorPane serverErrorPane;
+        private final VBox serverErrorPane;
+        private final Label serverErrorMessage;
+        private final Button serverErrorRetry;
         private final VBox contentColumns;
         private final ToggleGroup tabGroup;
         private final ImageView headerGlyph;
         private final Button wifiButton;
+        private final ImageView wifiIcon;
         private final Image wifiOnlineImage;
         private final Image wifiSearchingImage;
 
         private HubPane(Runnable onSettings, Runnable onRefresh, Consumer<Boolean> onLogin) {
-            container = new BorderPane();
-            container.getStyleClass().add("hub-pane");
+            FXMLLoader loader = new FXMLLoader(Main.class.getResource("/app/HubPane.fxml"));
+            try {
+                container = loader.load();
+            } catch (IOException exception) {
+                throw new IllegalStateException("Unable to load HubPane.fxml", exception);
+            }
+
+            status = (Label) loader.getNamespace().get("status");
+            offlineBadge = (Label) loader.getNamespace().get("offlineBadge");
+            contentColumns = (VBox) loader.getNamespace().get("contentColumns");
+            serverErrorPane = (VBox) loader.getNamespace().get("serverErrorPane");
+            serverErrorMessage = (Label) loader.getNamespace().get("serverErrorMessage");
+            serverErrorRetry = (Button) loader.getNamespace().get("serverErrorRetry");
+
+            Button controllerButton = (Button) loader.getNamespace().get("controllerButton");
+            Button userButton = (Button) loader.getNamespace().get("userButton");
+            wifiButton = (Button) loader.getNamespace().get("wifiButton");
+            ImageView wifiIconView = (ImageView) loader.getNamespace().get("wifiIcon");
+            Button settingsButton = (Button) loader.getNamespace().get("settingsButton");
+            Button signInButton = (Button) loader.getNamespace().get("signInButton");
+            Button createButton = (Button) loader.getNamespace().get("createButton");
+
+            headerGlyph = (ImageView) loader.getNamespace().get("headerGlyph");
+            ToggleButton homeTab = (ToggleButton) loader.getNamespace().get("homeTab");
+            ToggleButton gamingTab = (ToggleButton) loader.getNamespace().get("gamingTab");
+            ToggleButton tvTab = (ToggleButton) loader.getNamespace().get("tvTab");
 
             wifiOnlineImage = loadImage("/app/assets/server_status_icons/icons8-wi-fi-100.png");
             wifiSearchingImage = loadImage("/app/assets/server_status_icons/icons8-scan-wi-fi-100.png");
-
-            VBox top = new VBox();
-            top.setPadding(new Insets(32, 32, 16, 32));
-            top.setSpacing(24);
-
-            HBox iconsRow = new HBox(16);
-            iconsRow.setAlignment(Pos.CENTER_LEFT);
-
-            Button controllerButton = iconButton(loadImage("/app/assets/console_or_controller_icons/icons8-game-controller-100.png"), 36, () -> showScreen(Screen.CONNECT, true));
-            controllerButton.setAccessibleText("Controllers");
-
-            Button userButton = iconButton(loadImage("/app/assets/generic_icons/icons8-user-100.png"), 36, () -> onLogin.accept(false));
-            userButton.setAccessibleText("Current user");
-
-            wifiButton = iconButton(wifiOnlineImage, 36, onRefresh::run);
-            wifiButton.setAccessibleText("Wi-Fi status");
-
-            Region spacer = new Region();
-            HBox.setHgrow(spacer, Priority.ALWAYS);
-
-            Button settingsButton = new Button("Settings");
-            settingsButton.getStyleClass().add("ghost-button");
-            settingsButton.setOnAction(event -> onSettings.run());
-
-            Button signInButton = new Button("Sign In");
-            signInButton.getStyleClass().add("ghost-button");
-            signInButton.setOnAction(event -> onLogin.accept(false));
-
-            Button createButton = new Button("Create User");
-            createButton.getStyleClass().add("ghost-button");
-            createButton.setOnAction(event -> onLogin.accept(true));
-
-            iconsRow.getChildren().addAll(controllerButton, userButton, wifiButton, spacer, settingsButton, signInButton, createButton);
-
-            headerGlyph = createIconView(loadImage("/app/assets/generic_icons/icons8-user-100.png"), 64);
-
-            HBox header = new HBox(16);
-            header.setAlignment(Pos.CENTER);
+            wifiIcon = wifiIconView;
 
             tabGroup = new ToggleGroup();
-            HBox tabs = new HBox(24);
-            tabs.setAlignment(Pos.CENTER);
-
-            ToggleButton homeTab = makeTab("home", new String[]{"/app/assets/generic_icons/icons8-user-100.png"});
-            ToggleButton gamingTab = makeTab("gaming", new String[]{"/app/assets/console_or_controller_icons/icons8-game-controller-100.png"});
-            ToggleButton tvTab = makeTab("tv", new String[]{"/app/assets/generic_icons/icons8-add-user-male-100.png"});
-
-            tabs.getChildren().addAll(homeTab, gamingTab, tvTab);
-            header.getChildren().addAll(headerGlyph, tabs);
-
-            tabGroup.selectToggle(homeTab);
-            updateHeaderGlyph(homeTab);
+            configureTab(homeTab, new String[]{"/app/assets/generic_icons/icons8-user-100.png"});
+            configureTab(gamingTab, new String[]{"/app/assets/console_or_controller_icons/icons8-game-controller-100.png"});
+            configureTab(tvTab, new String[]{"/app/assets/generic_icons/icons8-add-user-male-100.png"});
 
             tabGroup.selectedToggleProperty().addListener((observable, oldValue, newValue) -> {
                 if (newValue != null) {
@@ -1082,32 +1020,26 @@ public class Main extends Application {
                 }
             });
 
-            offlineBadge = new Label("Offline cache");
-            offlineBadge.getStyleClass().add("offline-badge");
-            offlineBadge.setVisible(false);
+            tabGroup.selectToggle(homeTab);
+            updateHeaderGlyph(homeTab);
 
-            top.getChildren().addAll(iconsRow, header, createProgressDots(2), offlineBadge);
+            controllerButton.setAccessibleText("Controllers");
+            controllerButton.setOnAction(event -> showScreen(Screen.CONNECT, true));
 
-            ScrollPane scrollPane = new ScrollPane();
-            scrollPane.getStyleClass().add("hub-scroll");
-            scrollPane.setFitToWidth(true);
-            scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+            userButton.setAccessibleText("Current user");
+            userButton.setOnAction(event -> onLogin.accept(false));
 
-            contentColumns = new VBox(24);
-            contentColumns.setPadding(new Insets(0, 32, 32, 32));
-            scrollPane.setContent(contentColumns);
+            wifiButton.setAccessibleText("Wi-Fi status");
+            wifiButton.setOnAction(event -> onRefresh.run());
 
-            serverErrorPane = new ServerErrorPane(onRefresh);
-            serverErrorPane.getNode().setVisible(false);
+            settingsButton.setOnAction(event -> onSettings.run());
+            signInButton.setOnAction(event -> onLogin.accept(false));
+            createButton.setOnAction(event -> onLogin.accept(true));
 
-            StackPane center = new StackPane(scrollPane, serverErrorPane.getNode());
+            serverErrorRetry.setOnAction(event -> onRefresh.run());
 
-            status = new Label("Idle");
-            status.getStyleClass().add("status-bar");
-
-            container.setTop(top);
-            container.setCenter(center);
-            container.setBottom(status);
+            serverErrorPane.setVisible(false);
+            serverErrorPane.setManaged(false);
         }
 
         private void updateHeaderGlyph(ToggleButton toggle) {
@@ -1118,12 +1050,9 @@ public class Main extends Application {
             }
         }
 
-        private ToggleButton makeTab(String text, String[] glyphCandidates) {
-            ToggleButton button = new ToggleButton(text);
-            button.getStyleClass().add("hub-tab");
+        private void configureTab(ToggleButton button, String[] glyphCandidates) {
             button.setToggleGroup(tabGroup);
             button.setUserData(glyphCandidates);
-            return button;
         }
 
         private BorderPane getNode() {
@@ -1141,7 +1070,7 @@ public class Main extends Application {
 
         private void showLoading() {
             showStatus("Contacting server...");
-            serverErrorPane.getNode().setVisible(false);
+            hideServerError();
         }
 
         private void showStatus(String message) {
@@ -1150,17 +1079,22 @@ public class Main extends Application {
 
         private void setOffline(boolean offline) {
             offlineBadge.setVisible(offline);
-            wifiButton.setGraphic(createIconView(offline ? wifiSearchingImage : wifiOnlineImage, 36));
+            if (wifiIcon != null) {
+                wifiIcon.setImage(offline ? wifiSearchingImage : wifiOnlineImage);
+            }
         }
 
         private void showServerError(String message, Runnable onRetry) {
-            serverErrorPane.setMessage(message, onRetry);
-            serverErrorPane.getNode().setVisible(true);
+            serverErrorMessage.setText(message);
+            serverErrorRetry.setOnAction(event -> onRetry.run());
+            serverErrorPane.setVisible(true);
+            serverErrorPane.setManaged(true);
             contentColumns.setVisible(false);
         }
 
         private void hideServerError() {
-            serverErrorPane.getNode().setVisible(false);
+            serverErrorPane.setVisible(false);
+            serverErrorPane.setManaged(false);
             contentColumns.setVisible(true);
         }
 
@@ -1274,11 +1208,9 @@ public class Main extends Application {
         private Button createTileButton(AppTile app) {
             Button button = new Button(app.name);
             button.getStyleClass().add("launcher-tile");
-            if (!app.installed || !app.enabled) {
+            if (!app.playable()) {
                 button.getStyleClass().add("launcher-tile-disabled");
-                if (!app.installed) {
-                    button.setDisable(true);
-                }
+                button.setDisable(true);
             }
             button.setOnAction(event -> launch(app));
             button.setMaxWidth(Double.MAX_VALUE);
@@ -1292,34 +1224,6 @@ public class Main extends Application {
         }
     }
 
-    private final class ServerErrorPane {
-        private final VBox container;
-        private final Label messageLabel;
-        private final Button retryButton;
-
-        private ServerErrorPane(Runnable onRetry) {
-            messageLabel = new Label("Server unavailable");
-            messageLabel.getStyleClass().add("server-error-message");
-
-            retryButton = new Button("Retry");
-            retryButton.getStyleClass().add("primary-button");
-            retryButton.setOnAction(event -> onRetry.run());
-
-            container = new VBox(16, messageLabel, retryButton);
-            container.getStyleClass().add("server-error-pane");
-            container.setAlignment(Pos.CENTER);
-        }
-
-        private void setMessage(String message, Runnable onRetry) {
-            messageLabel.setText(message);
-            retryButton.setOnAction(event -> onRetry.run());
-        }
-
-        private VBox getNode() {
-            return container;
-        }
-    }
-
     private final class HostSettingsOverlay {
         private final StackPane container;
         private final Label offlineLabel;
@@ -1327,42 +1231,34 @@ public class Main extends Application {
         private final Runnable onClosed;
 
         private HostSettingsOverlay(Runnable onHide, Consumer<String> onApply, Runnable onRefresh) {
-            hostInput = hostField;
             this.onClosed = onHide;
 
-            Label title = new Label("Server Settings");
-            title.getStyleClass().add("overlay-title");
+            FXMLLoader loader = new FXMLLoader(Main.class.getResource("/app/HostSettingsOverlay.fxml"));
+            try {
+                container = loader.load();
+            } catch (IOException exception) {
+                throw new IllegalStateException("Unable to load HostSettingsOverlay.fxml", exception);
+            }
 
-            offlineLabel = new Label("Offline cache is active");
-            offlineLabel.getStyleClass().add("overlay-subtitle");
+            hostInput = (TextField) loader.getNamespace().get("hostInput");
+            offlineLabel = (Label) loader.getNamespace().get("offlineLabel");
+            Button applyButton = (Button) loader.getNamespace().get("applyButton");
+            Button refreshButton = (Button) loader.getNamespace().get("refreshButton");
+            Button closeButton = (Button) loader.getNamespace().get("closeButton");
 
-            Button applyButton = new Button("Apply");
-            applyButton.getStyleClass().add("primary-button");
+            hostField = hostInput;
+
             applyButton.setOnAction(event -> {
                 onApply.accept(hostInput.getText().trim());
                 hide();
             });
 
-            Button refreshButton = new Button("Refresh");
-            refreshButton.getStyleClass().add("ghost-button");
             refreshButton.setOnAction(event -> {
                 hide();
                 onRefresh.run();
             });
 
-            Button closeButton = new Button("Close");
-            closeButton.getStyleClass().add("ghost-button");
             closeButton.setOnAction(event -> hide());
-
-            VBox box = new VBox(16, title, new Label("Host"), hostInput, offlineLabel,
-                    new HBox(12, applyButton, refreshButton, closeButton));
-            box.getStyleClass().add("overlay-card");
-            box.setAlignment(Pos.CENTER_LEFT);
-
-            container = new StackPane(box);
-            container.getStyleClass().add("overlay-layer");
-            container.setVisible(false);
-            container.setManaged(false);
 
             container.setOnMouseClicked(event -> {
                 if (event.getTarget() == container) {
@@ -1404,44 +1300,24 @@ public class Main extends Application {
         private boolean createMode;
 
         private LoginOverlay(Runnable onHide, BiConsumer<String, String> onLogin, BiConsumer<String, String> onCreate) {
-            usernameField = new TextField();
-            usernameField.setPromptText("Username");
+            FXMLLoader loader = new FXMLLoader(Main.class.getResource("/app/LoginOverlay.fxml"));
+            try {
+                container = loader.load();
+            } catch (IOException exception) {
+                throw new IllegalStateException("Unable to load LoginOverlay.fxml", exception);
+            }
 
-            passwordField = new PasswordField();
-            passwordField.setPromptText("Password");
+            usernameField = (TextField) loader.getNamespace().get("usernameField");
+            passwordField = (PasswordField) loader.getNamespace().get("passwordField");
+            statusLabel = (Label) loader.getNamespace().get("statusLabel");
+            primaryButton = (Button) loader.getNamespace().get("primaryButton");
+            Button closeButton = (Button) loader.getNamespace().get("closeButton");
+            secondaryButton = (Button) loader.getNamespace().get("secondaryButton");
+
             passwordField.setOnAction(event -> trigger(onLogin, onCreate));
-
-            statusLabel = new Label(" ");
-            statusLabel.getStyleClass().add("status-message");
-
-            primaryButton = new Button("Sign In");
-            primaryButton.getStyleClass().add("primary-button");
             primaryButton.setOnAction(event -> trigger(onLogin, onCreate));
-
-            secondaryButton = new Button("Create Account Instead");
-            secondaryButton.getStyleClass().add("ghost-button");
             secondaryButton.setOnAction(event -> switchMode(!createMode));
-
-            Button closeButton = new Button("Close");
-            closeButton.getStyleClass().add("ghost-button");
-            closeButton.setOnAction(event -> {
-                hide();
-            });
-
-            VBox box = new VBox(16,
-                    new Label("Account"),
-                    usernameField,
-                    passwordField,
-                    statusLabel,
-                    new HBox(12, primaryButton, closeButton),
-                    secondaryButton);
-            box.getStyleClass().add("overlay-card");
-            box.setAlignment(Pos.CENTER_LEFT);
-
-            container = new StackPane(box);
-            container.getStyleClass().add("overlay-layer");
-            container.setVisible(false);
-            container.setManaged(false);
+            closeButton.setOnAction(event -> hide());
 
             this.onClosed = onHide;
 
@@ -1531,6 +1407,8 @@ public class Main extends Application {
         private String host;
         private Integer userId;
         private String username;
+        private Integer orgId;
+        private String token;
 
         private boolean hasKnownUser() {
             return userId != null || (username != null && !username.isBlank());
@@ -1556,6 +1434,14 @@ public class Main extends Application {
                 Object storedUsername = payload.get("username");
                 if (storedUsername instanceof String name && !name.isBlank()) {
                     config.username = name;
+                }
+                Object storedOrgId = payload.get("orgId");
+                if (storedOrgId instanceof Number orgNumber) {
+                    config.orgId = orgNumber.intValue();
+                }
+                Object storedToken = payload.get("token");
+                if (storedToken instanceof String tk && !tk.isBlank()) {
+                    config.token = tk;
                 }
             } catch (IOException ex) {
                 ex.printStackTrace();

@@ -31,15 +31,43 @@ public final class HttpRepo {
     private HttpRepo() {
     }
 
-    public record UserProfile(int userId, String username, List<AppTile> apps, Map<String, Object> settings) {
+    public record OrgSummary(int id, String slug, String name, String role) {}
+
+    public record UserProfile(int userId,
+                              String username,
+                              List<AppTile> apps,
+                              Map<String, Object> settings,
+                              List<OrgSummary> orgs,
+                              String token) {
+
+        public Integer primaryOrgId() {
+            if (orgs == null || orgs.isEmpty()) {
+                return null;
+            }
+            return orgs.get(0).id();
+        }
     }
 
     public record UserPresence(boolean hasUsers) {
     }
 
-    public static String fetchAppsJson(String baseUrl, Duration requestTimeout, int maxRetries) throws Exception {
+    public record CatalogResult(List<AppTile> tiles, boolean fromCache, String rawJson) {}
+
+    private record LibraryRecord(String slug, int gameId, boolean installReady) {
+        String slugKey() {
+            return slug != null && !slug.isBlank() ? slug : null;
+        }
+
+        String gameKey() {
+            return "game-" + gameId;
+        }
+    }
+
+    public record SessionResponse(int id, String status, String streamUrl) {}
+
+    public static String fetchChartsJson(String baseUrl, Duration requestTimeout, int maxRetries) throws Exception {
         String resolvedBase = resolveBase(baseUrl);
-        String target = resolvedBase.endsWith("/apps") ? resolvedBase : resolvedBase + "/apps";
+        String target = resolvedBase + "/charts/top10";
         HttpRequest request = HttpRequest.newBuilder(URI.create(target))
                 .timeout(requestTimeout)
                 .GET()
@@ -49,8 +77,67 @@ public final class HttpRepo {
     }
 
     public static List<AppTile> listDefaultApps(String baseUrl) throws Exception {
-        String json = fetchAppsJson(baseUrl, DEFAULT_REQUEST_TIMEOUT, DEFAULT_MAX_RETRIES);
+        String json = fetchChartsJson(baseUrl, DEFAULT_REQUEST_TIMEOUT, DEFAULT_MAX_RETRIES);
         return parseApps(json);
+    }
+
+    public static CatalogResult loadCatalog(String baseUrl, Integer userId, Integer orgId, Duration timeout, int retries) throws Exception {
+        String json = fetchChartsJson(baseUrl, timeout, retries);
+        List<AppTile> charts = parseApps(json);
+        if (userId != null && orgId != null) {
+            List<AppTile> merged = mergeWithLibrary(baseUrl, charts, userId, orgId);
+            return new CatalogResult(merged, false, json);
+        }
+        return new CatalogResult(charts, false, json);
+    }
+
+    public static List<AppTile> mergeWithLibrary(String baseUrl, List<AppTile> source, int userId, int orgId) throws Exception {
+        Map<String, LibraryRecord> records = fetchLibraryMap(baseUrl, userId, orgId);
+        List<AppTile> merged = new ArrayList<>(source.size());
+        for (AppTile tile : source) {
+            LibraryRecord record = records.get(tile.id);
+            if (record == null && tile.gameId != null) {
+                record = records.get("game-" + tile.gameId);
+            }
+            if (record != null) {
+                boolean installReady = tile.installed || record.installReady();
+                merged.add(tile.withOwnership(true, installReady));
+            } else {
+                merged.add(tile.withOwnership(false, tile.installed));
+            }
+        }
+        return merged;
+    }
+
+    private static Map<String, LibraryRecord> fetchLibraryMap(String baseUrl, int userId, int orgId) throws Exception {
+        String resolvedBase = resolveBase(baseUrl);
+        String target = resolvedBase + "/users/" + userId + "/library?org_id=" + orgId;
+        HttpRequest request = HttpRequest.newBuilder(URI.create(target))
+                .timeout(DEFAULT_REQUEST_TIMEOUT)
+                .GET()
+                .header("Accept", "application/json")
+                .build();
+        String body = sendForBody(request, DEFAULT_MAX_RETRIES);
+        JsonNode node = MAPPER.readTree(body);
+        Map<String, LibraryRecord> map = new HashMap<>();
+        if (!node.isArray()) {
+            return map;
+        }
+        for (JsonNode entry : node) {
+            JsonNode gameNode = entry.path("game");
+            String slug = gameNode.path("slug").asText(null);
+            int gameId = gameNode.path("id").asInt(-1);
+            boolean installReady = entry.path("install_ready").asBoolean(false);
+            if (gameId < 0) {
+                continue;
+            }
+            LibraryRecord record = new LibraryRecord(slug, gameId, installReady);
+            if (record.slugKey() != null) {
+                map.put(record.slugKey(), record);
+            }
+            map.put(record.gameKey(), record);
+        }
+        return map;
     }
 
     public static UserPresence fetchUserPresence(String baseUrl) throws Exception {
@@ -73,19 +160,6 @@ public final class HttpRepo {
 
     public static UserProfile login(String baseUrl, String username, String password) throws Exception {
         return sendUserRequest(baseUrl, "/auth/login", username, password);
-    }
-
-    public static List<AppTile> fetchUserApps(String baseUrl, int userId) throws Exception {
-        String resolvedBase = resolveBase(baseUrl);
-        String target = resolvedBase + "/users/" + userId + "/apps";
-        HttpRequest request = HttpRequest.newBuilder(URI.create(target))
-                .timeout(DEFAULT_REQUEST_TIMEOUT)
-                .GET()
-                .header("Accept", "application/json")
-                .build();
-        String body = sendForBody(request, DEFAULT_MAX_RETRIES);
-        JsonNode node = MAPPER.readTree(body);
-        return parseAppsNode(node);
     }
 
     public static void updateInstalled(String baseUrl, int userId, String appId, boolean installed) throws Exception {
@@ -147,6 +221,29 @@ public final class HttpRepo {
         return parseUserProfile(body);
     }
 
+    public static SessionResponse startSession(String baseUrl, int orgId, int userId, int gameId) throws Exception {
+        String resolvedBase = resolveBase(baseUrl);
+        String target = resolvedBase + "/sessions";
+        Map<String, Object> payload = Map.of(
+                "org_id", orgId,
+                "user_id", userId,
+                "game_id", gameId
+        );
+        String json = MAPPER.writeValueAsString(payload);
+        HttpRequest request = HttpRequest.newBuilder(URI.create(target))
+                .timeout(DEFAULT_REQUEST_TIMEOUT)
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .build();
+        String body = sendForBody(request, DEFAULT_MAX_RETRIES);
+        JsonNode node = MAPPER.readTree(body);
+        int id = node.path("id").asInt();
+        String status = node.path("status").asText("provisioning");
+        String streamUrl = node.path("stream_url").isMissingNode() ? null : node.get("stream_url").asText(null);
+        return new SessionResponse(id, status, streamUrl);
+    }
+
     private static String sendForBody(HttpRequest request, int maxRetries) throws Exception {
         int attempts = Math.max(1, maxRetries);
         long backoffMillis = 250;
@@ -195,7 +292,21 @@ public final class HttpRepo {
                 : MAPPER.convertValue(settingsNode, new TypeReference<>() {
         });
         List<AppTile> apps = node.has("apps") ? parseAppsNode(node.get("apps")) : Collections.emptyList();
-        return new UserProfile(userId, username, apps, settings);
+        List<OrgSummary> orgs = new ArrayList<>();
+        JsonNode orgNode = node.path("orgs");
+        if (orgNode.isArray()) {
+            for (JsonNode entry : orgNode) {
+                OrgSummary summary = new OrgSummary(
+                        entry.path("id").asInt(-1),
+                        entry.path("slug").asText(""),
+                        entry.path("name").asText(""),
+                        entry.path("role").asText("member")
+                );
+                orgs.add(summary);
+            }
+        }
+        String token = node.path("token").asText("");
+        return new UserProfile(userId, username, apps, settings, orgs, token);
     }
 
     private static List<AppTile> parseAppsNode(JsonNode node) throws Exception {
@@ -237,8 +348,15 @@ public final class HttpRepo {
         String name = node.path("name").asText(id);
         String moonlightName = node.path("moonlight_name").asText(name);
         boolean enabled = node.path("enabled").asBoolean(true);
-        int sortOrder = node.path("sort_order").asInt(100);
-        boolean installed = node.path("installed").asBoolean(enabled);
-        return new AppTile(id, name, moonlightName, enabled, sortOrder, installed);
+        int sortOrder = node.path("sort_order").asInt(node.path("chart_rank").asInt(100));
+        boolean installed = node.path("installed").asBoolean(false);
+        boolean owned = node.path("owned").asBoolean(false);
+        Integer chartRank = node.hasNonNull("chart_rank") ? node.get("chart_rank").asInt() : null;
+        String chartDate = node.hasNonNull("chart_date") ? node.get("chart_date").asText() : null;
+        String description = node.hasNonNull("description") ? node.get("description").asText() : null;
+        String coverUrl = node.hasNonNull("cover_url") ? node.get("cover_url").asText() : null;
+        Integer steamAppId = node.hasNonNull("steam_appid") ? node.get("steam_appid").asInt() : null;
+        Integer gameId = node.hasNonNull("game_id") ? node.get("game_id").asInt() : null;
+        return new AppTile(id, name, moonlightName, enabled, sortOrder, installed, owned, chartRank, chartDate, description, coverUrl, steamAppId, gameId);
     }
 }

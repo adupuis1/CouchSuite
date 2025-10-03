@@ -1,0 +1,12 @@
+# Standard Flutter ignores
+.dart_tool/
+.packages
+build/
+.idea/
+android/
+ios/
+web/
+windows/
+macos/
+linux/
+*.iml

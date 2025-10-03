@@ -21,7 +21,7 @@ application {
 javafx {
     // JavaFX 21+ runs great on Apple Silicon and Linux ARM64
     version = '25'
-    modules = [ 'javafx.controls', 'javafx.graphics' ]
+    modules = [ 'javafx.controls', 'javafx.graphics', 'javafx.fxml' ]
 }
 
 dependencies {

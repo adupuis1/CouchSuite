@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane prefHeight="800" prefWidth="1280" style="-fx-background-color: linear-gradient(to bottom right, #fefeff 0%, #f2f4ff 45%, #e6e9f7 100%);" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+    <children>
+        <BorderPane maxHeight="680" maxWidth="1160" prefHeight="680" prefWidth="1160" style="-fx-background-color: rgba(255,255,255,0.82); -fx-background-radius: 42; -fx-padding: 56 72;" styleClass="connect-pane">
+            <top>
+                <HBox alignment="CENTER_LEFT" spacing="16">
+                    <children>
+                        <Label styleClass="connect-title" text="couchsuite" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <ImageView fitHeight="36" fitWidth="36" preserveRatio="true">
+                            <image>
+                                <Image url="@assets/server_status_icons/icons8-wi-fi-100.png" />
+                            </image>
+                        </ImageView>
+                        <ImageView fitHeight="36" fitWidth="36" preserveRatio="true">
+                            <image>
+                                <Image url="@assets/generic_icons/icons8-user-100.png" />
+                            </image>
+                        </ImageView>
+                    </children>
+                </HBox>
+            </top>
+            <center>
+            <VBox>
+               <children>
+                        <StackPane prefHeight="360" prefWidth="520" style="-fx-background-color: linear-gradient(to bottom right, rgba(40,46,72,0.92), rgba(29,33,50,0.85)); -fx-background-radius: 36; -fx-padding: 48;">
+                            <children>
+                                <VBox alignment="CENTER" spacing="32">
+                                    <children>
+                                        <HBox alignment="CENTER" spacing="32">
+                                            <children>
+                                              <ImageView fitHeight="81.0" fitWidth="96.0" preserveRatio="true">
+                                                  <image>
+                                                      <Image url="@assets/console_or_controller_icons/icons8-game-controller-100.png" />
+                                                  </image>
+                                              </ImageView>
+                                                <ImageView fitHeight="80" fitWidth="80" opacity="0.68" preserveRatio="true">
+                                                    <image>
+                                                        <Image url="@assets/console_or_controller_icons/icons8-joy-con-100.png" />
+                                                    </image>
+                                                </ImageView>
+                                                <ImageView fitHeight="80" fitWidth="80" opacity="0.68" preserveRatio="true">
+                                                    <image>
+                                                        <Image url="@assets/console_or_controller_icons/icons8-nintendo-switch-logo-100.png" />
+                                                    </image>
+                                                </ImageView>
+                                            </children>
+                                        </HBox>
+                                        <Label style="-fx-text-fill: rgb(228,232,255); -fx-font-size: 16px;" styleClass="user-select-presence" text="Hold the pairing button on your controller" />
+                                    </children>
+                                </VBox>
+                            </children>
+                        </StackPane>
+                  <AnchorPane>
+                     <HBox.margin>
+                        <Insets />
+                     </HBox.margin>
+                  </AnchorPane>
+               </children>
+            </VBox>
+            </center>
+        </BorderPane>
+    </children>
+</StackPane>
